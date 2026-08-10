@@ -1,14 +1,30 @@
 const express = require('express');
-const AppManager = require('./AppManager');
-const { config } = require('./utils');
+const settings = require('./config/settings');
+const database = require('./database');
+const userModel = require('./models/userModel');
+const checkoutRoutes = require('./routes/checkoutRoutes');
+const userRoutes = require('./routes/userRoutes');
+const reportRoutes = require('./routes/reportRoutes');
+const errorHandler = require('./middlewares/errorHandler');
 
-const app = express();
-app.use(express.json());
+async function start() {
+  const app = express();
+  app.use(express.json());
 
-const manager = new AppManager();
-manager.initDb();
-manager.setupRoutes(app);
+  await database.initSchema();
+  await database.seed({ seedUserPasswordHash: userModel.hashPassword('123') });
 
-app.listen(config.port, () => {
-    console.log(`Frankenstein LMS rodando na porta ${config.port}...`);
-});
+  app.use('/api/checkout', checkoutRoutes);
+  app.use('/api/users', userRoutes);
+  app.use('/api/admin', reportRoutes);
+
+  app.use(errorHandler);
+
+  app.listen(settings.port, () => {
+    console.log(`Frankenstein LMS rodando na porta ${settings.port}...`);
+  });
+}
+
+start();
+
+module.exports = { start };
